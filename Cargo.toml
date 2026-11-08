@@ -1,0 +1,77 @@
+[package]
+name = "cherry"
+description = "An embeddable modal text editor: the Vim grammar where you navigate, Emacs editing where you type, painted by whatever toolkit hosts it."
+version = "0.0.1"
+edition = "2024"
+authors = ["Quang Trung Ta <taquangtrungvn@gmail.com>"]
+license = "MIT"
+# The verified floor: `rust-toolchain.toml` pins 1.100.0.
+rust-version = "1.100"
+keywords = ["editor", "vim", "emacs", "modal", "text-editing"]
+categories = ["text-editors", "gui"]
+include = ["Cargo.toml", "LICENSE", "README.md", "benches/**/*.rs", "examples/**/*.rs", "src/**/*.rs", "tests/**/*.rs"]
+repository = "https://github.com/taquangtrung/cherry"
+
+# docs.rs documents the `syntax` module too.
+[package.metadata.docs.rs]
+all-features = true
+
+[lints.rust]
+missing_docs = "deny"
+unsafe_code = "forbid"
+
+[lints.clippy]
+dbg_macro = "warn"
+todo = "warn"
+
+[dependencies]
+# Search patterns. Default features kept: Unicode classes and case folding
+# serve smart case on any script. 1.10 is the first to read Vim's word
+# edges `\<` and `\>`.
+regex = "1.10"
+# Without the default `unicode_lines`, only `\n` breaks a line; the document
+# normalizes every other line ending to it.
+ropey = { version = "1", default-features = false, features = ["simd"] }
+slotmap = "1"
+thiserror = "2"
+unicode-segmentation = "1"
+unicode-width = "0.2"
+# The `syntax` module's syntax trees and its bundled grammars. Query
+# captures are streaming iterators in tree-sitter 0.25; the grammars depend
+# only on `tree-sitter-language`, so any 0.25 core loads them.
+streaming-iterator = { version = "0.1", optional = true }
+tree-sitter = { version = "0.25", optional = true }
+tree-sitter-json = { version = "0.24", optional = true }
+tree-sitter-md = { version = "0.5", optional = true }
+tree-sitter-python = { version = "0.25", optional = true }
+tree-sitter-rust = { version = "0.24", optional = true }
+tree-sitter-toml-ng = { version = "0.7", optional = true }
+
+[features]
+# Tree-sitter highlighting and structural text objects (the `syntax`
+# module), with all five bundled grammars.
+syntax = ["syntax-json", "syntax-markdown", "syntax-python", "syntax-rust", "syntax-toml"]
+# The `syntax` module without a grammar, for one that names its own.
+syntax-engine = ["dep:streaming-iterator", "dep:tree-sitter"]
+# One bundled grammar each, the engine with it.
+syntax-json = ["syntax-engine", "dep:tree-sitter-json"]
+syntax-markdown = ["syntax-engine", "dep:tree-sitter-md"]
+syntax-python = ["syntax-engine", "dep:tree-sitter-python"]
+syntax-rust = ["syntax-engine", "dep:tree-sitter-rust"]
+syntax-toml = ["syntax-engine", "dep:tree-sitter-toml-ng"]
+
+[dev-dependencies]
+# Benchmarks only. No plots or parallel analysis: numbers are enough.
+criterion = { version = "0.7", default-features = false, features = ["cargo_bench_support"] }
+# Only the terminal example uses crossterm; the library stays toolkit-free.
+crossterm = "0.29"
+
+[[example]]
+name = "term"
+test = true
+# It highlights with the `syntax` module.
+required-features = ["syntax"]
+
+[[bench]]
+name = "keystroke"
+harness = false
