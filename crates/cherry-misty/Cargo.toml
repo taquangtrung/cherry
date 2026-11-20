@@ -1,0 +1,58 @@
+[package]
+name = "cherry-misty"
+description = "Cherry Editor on the misty GUI framework: misty's keys resolved by Cherry's keymap, and Cherry's text editor as a misty widget."
+version = "0.0.1"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+rust-version.workspace = true
+keywords = ["editor", "vim", "emacs", "gui", "misty"]
+categories = ["text-editors", "gui"]
+repository.workspace = true
+
+# docs.rs documents the `syntax` feature too.
+[package.metadata.docs.rs]
+all-features = true
+
+[lints.rust]
+missing_docs = "deny"
+unsafe_code = "deny"
+
+[lints.clippy]
+dbg_macro = "warn"
+todo = "warn"
+
+[features]
+# The engine's features, so an app on misty needs no `cherry-engine` line of
+# its own. Serialize and Deserialize for saved undo histories and keymap
+# files.
+serde = ["cherry-engine/serde"]
+# Syntax highlighting in `EditorView` through the engine's `syntax` module,
+# colored by the theme's syntax colors, with all five bundled grammars.
+syntax = ["syntax-json", "syntax-markdown", "syntax-python", "syntax-rust", "syntax-textmate", "syntax-toml"]
+# The `syntax` module without a grammar, for one that names its own.
+syntax-engine = ["cherry-engine/syntax-engine"]
+# One bundled grammar each, the engine with it.
+syntax-json = ["syntax-engine", "cherry-engine/syntax-json"]
+syntax-markdown = ["syntax-engine", "cherry-engine/syntax-markdown"]
+syntax-python = ["syntax-engine", "cherry-engine/syntax-python"]
+syntax-rust = ["syntax-engine", "cherry-engine/syntax-rust"]
+syntax-toml = ["syntax-engine", "cherry-engine/syntax-toml"]
+# TextMate highlighting of every other language, through iris.
+syntax-textmate = ["cherry-engine/syntax-textmate"]
+
+[dependencies]
+cherry-engine = { workspace = true }
+misty = { workspace = true }
+
+[dev-dependencies]
+misty = { workspace = true, features = ["testing"] }
+
+# The chrome example's tests check its command table.
+[[example]]
+name = "chrome"
+test = true
+
+[[example]]
+name = "editor"
+required-features = ["syntax"]

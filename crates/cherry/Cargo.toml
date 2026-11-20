@@ -1,0 +1,51 @@
+[package]
+name = "cherry"
+description = "Cherry Editor, an embeddable text editor: the Vim grammar where you navigate and Emacs editing where you type, or strict Vim, Emacs, or desktop keys; ready-made on the misty GUI framework, or painted by any toolkit."
+version = "0.0.2"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+rust-version.workspace = true
+keywords = ["editor", "vim", "emacs", "modal", "misty"]
+categories = ["text-editors", "gui"]
+include = ["Cargo.toml", "LICENSE-APACHE", "LICENSE-MIT", "src/**/*.rs"]
+repository.workspace = true
+
+# docs.rs documents every toolkit and the `syntax` module too.
+[package.metadata.docs.rs]
+all-features = true
+
+[lints.rust]
+missing_docs = "deny"
+unsafe_code = "forbid"
+
+[lints.clippy]
+dbg_macro = "warn"
+todo = "warn"
+
+[features]
+# By default: Cherry on misty, and TextMate highlighting of every language
+# iris knows (pure Rust, no C build).
+default = ["misty", "syntax-textmate"]
+# Cherry on misty, as `cherry::misty`; without it, Cherry builds no toolkit.
+misty = ["dep:cherry-misty"]
+# Serialize and Deserialize for saved undo histories and keymap files.
+serde = ["cherry-engine/serde"]
+# Tree-sitter highlighting and structural text objects (the `syntax`
+# module), with all five bundled grammars; on misty, drawn in the theme's
+# syntax colors.
+syntax = ["syntax-json", "syntax-markdown", "syntax-python", "syntax-rust", "syntax-textmate", "syntax-toml"]
+# The `syntax` module without a grammar, for one that names its own.
+syntax-engine = ["cherry-engine/syntax-engine", "cherry-misty?/syntax-engine"]
+# One bundled grammar each, the engine with it.
+syntax-json = ["syntax-engine", "cherry-engine/syntax-json", "cherry-misty?/syntax-json"]
+syntax-markdown = ["syntax-engine", "cherry-engine/syntax-markdown", "cherry-misty?/syntax-markdown"]
+syntax-python = ["syntax-engine", "cherry-engine/syntax-python", "cherry-misty?/syntax-python"]
+syntax-rust = ["syntax-engine", "cherry-engine/syntax-rust", "cherry-misty?/syntax-rust"]
+syntax-toml = ["syntax-engine", "cherry-engine/syntax-toml", "cherry-misty?/syntax-toml"]
+# TextMate highlighting of every other language, through iris.
+syntax-textmate = ["cherry-engine/syntax-textmate", "cherry-misty?/syntax-textmate"]
+
+[dependencies]
+cherry-engine = { workspace = true }
+cherry-misty = { workspace = true, optional = true }
