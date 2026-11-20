@@ -1,0 +1,37 @@
+# Checks every pull request, and runs when started by hand (Actions > CI >
+# Run workflow, or `gh workflow run ci.yml --ref <branch>`); pushes run
+# nothing.
+name: CI
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+# A newer run on the same pull request or branch cancels the run before it.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    name: ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [check, test, features, doc]
+    steps:
+      - uses: actions/checkout@v4
+      # rustup installs the toolchain `rust-toolchain.toml` pins, with
+      # rustfmt and clippy, on the first cargo call.
+      - run: rustup show
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      - run: make ${{ matrix.target }}

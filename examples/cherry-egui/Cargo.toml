@@ -1,0 +1,11 @@
+[package]
+name = "cherry-egui"
+description = "A GUI host for Cherry Editor on egui, as an example."
+version = "0.0.0"
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+cherry = { workspace = true }
+eframe = { workspace = true }
