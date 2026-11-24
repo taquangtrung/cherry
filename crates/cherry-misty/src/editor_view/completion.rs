@@ -1,18 +1,11 @@
 //! The completion popup of an [`EditorView`](crate::EditorView): Cherry's
-//! open completion menu drawn as a raised menu under the text being
-//! completed, a deeper shadow than a tooltip's lifting it off the text.
-//! Each row, as roomy as a menu's, shows the match's kind as a letter on a
-//! chip tinted its color, its label with the typed characters marked in the
-//! accent color, and its detail muted at the row's right end, each cut with
-//! an ellipsis past its width; the selected row is filled and lined with a
-//! thin accent border, and a thumb at the right says how far down the list
-//! is while more matches than fit. Beside the popup, a card holds the
-//! selected match's signature over a line, its documentation, and where
-//! the match came from.
+//! open completion menu drawn under the text being completed with crisp
+//! corners, compact rows, a neutral selected-row band, and a documentation
+//! card beside it.
 
 use cherry_engine::{Completion, CompletionItem, CompletionKind};
 use misty::{
-    Border, BoxStyle, CellColor, Frame, Paragraph, Point, Popup, PopupSide, Rect, Rgb, Rgba, Span,
+    BoxStyle, CellColor, Frame, Paragraph, Point, Popup, PopupSide, Rect, Rgb, Rgba, Shape, Span,
     StyledText, TextColor, Theme, ThemeToken, fuzzy_highlight, fuzzy_score, text_width,
 };
 
@@ -42,12 +35,23 @@ const KIND_CELLS: usize = 3;
 /// The chip's side as a share of the text's line height.
 const CHIP_SHARE: f32 = 0.9;
 
-/// How much of a kind's color tints its chip over the popup's fill.
+/// How much of a kind's color tints its chip over the row's fill.
 const CHIP_TINT: f32 = 0.22;
 
-/// How many times a tooltip's shadow the popup casts, so it reads as a
-/// menu standing over the text rather than a hint beside it.
-const SHADOW_DEPTH: f32 = 2.0;
+/// Maximum corner radius of the completion popup and documentation card,
+/// in logical pixels.
+const POPUP_CORNER_RADIUS: u16 = 2;
+
+/// Maximum corner radius of a kind chip, in logical pixels.
+const CHIP_CORNER_RADIUS: u16 = 2;
+
+/// Maximum vertical padding above and below each completion row, in logical
+/// pixels.
+const ROW_PADDING: u16 = 2;
+
+/// How much of the foreground color mixes into the popup background to form
+/// the neutral selected-row fill.
+const SELECTED_FILL_SHARE: f32 = 0.12;
 
 /// The scroll thumb's width, in logical pixels.
 const THUMB_WIDTH: f32 = 3.0;
@@ -146,19 +150,19 @@ pub(crate) fn draw_completion(
     }
     let metrics = frame.cell_metrics();
     let scale_factor = frame.scale_factor();
-    let inset = Popup::inset(&theme.shape, scale_factor);
+    let shape = popup_shape(theme);
+    let inset = Popup::inset(&shape, scale_factor);
     let padding = metrics.width.round();
-    // A menu's room around the text, so a row is as easy to aim at.
-    let row_padding = (f32::from(theme.shape.row_padding) * scale_factor as f32).round();
+    let row_padding = (f32::from(shape.row_padding) * scale_factor as f32).round();
     let row_height = metrics.height + 2.0 * row_padding;
     let columns = Columns::of(items);
     let rows = items.len().min(MAX_ROWS);
     let width = columns.width() as f32 * metrics.width + 2.0 * (padding + inset);
     let height = rows as f32 * row_height + 2.0 * inset;
     let popup = Popup::new(anchor, width, height, PopupSide::Below, frame.bounds());
-    let style = menu_box(theme, scale_factor);
+    let style = menu_box(theme, &shape, scale_factor);
     frame.overlay(|frame| frame.draw_box(popup.rect(), &style));
-    let content = popup.content(&theme.shape, scale_factor);
+    let content = popup.content(&shape, scale_factor);
     let highlighted = completion.highlighted();
     let first = first_shown(highlighted, items.len(), rows);
     frame.overlay(|frame| {
@@ -169,11 +173,26 @@ pub(crate) fn draw_completion(
                 content.width,
                 row_height,
             );
-            if highlighted == Some(index) {
+            let is_selected = highlighted == Some(index);
+            if is_selected {
                 draw_selection(frame, row, theme);
             }
+            let row_bg = match is_selected {
+                true => selected_row_fill(theme),
+                false => theme.raised,
+            };
             let origin = Point::new(row.x + padding, row.y + row_padding);
-            draw_row(frame, item, completion.typed(), columns, origin, row, theme);
+            draw_row(
+                frame,
+                item,
+                completion.typed(),
+                columns,
+                origin,
+                row,
+                row_bg,
+                &shape,
+                theme,
+            );
         }
         if items.len() > rows {
             draw_thumb(frame, content, first, rows, items.len(), theme);
@@ -186,24 +205,30 @@ pub(crate) fn draw_completion(
         let top = list.y.min(anchor.y);
         let bottom = (list.y + list.height).max(anchor.y + anchor.height);
         let clear = Rect::new(list.x, top, list.width, bottom - top);
-        draw_documentation(frame, item, clear, theme);
+        draw_documentation(frame, item, clear, &shape, theme);
     }
 }
 
-/// The box the popup and its card are drawn in: a floating box of the
-/// raised color, its shadow [`SHADOW_DEPTH`] times a tooltip's.
-fn menu_box(theme: &Theme, scale_factor: f64) -> BoxStyle {
-    let mut style = theme
-        .shape
-        .floating_box(theme.raised, theme.border, scale_factor);
-    if let Some(shadow) = &mut style.shadow {
-        shadow.blur *= SHADOW_DEPTH;
-        shadow.offset = Point::new(
-            shadow.offset.x * SHADOW_DEPTH,
-            shadow.offset.y * SHADOW_DEPTH,
-        );
+/// Crisp popup shape derived from `theme`: tighter corners, compact rows, and
+/// full-width selection bands while preserving square grid themes.
+fn popup_shape(theme: &Theme) -> Shape {
+    Shape {
+        control_radius: theme.shape.control_radius.min(CHIP_CORNER_RADIUS),
+        corner_radius: theme.shape.corner_radius.min(POPUP_CORNER_RADIUS),
+        highlight_inset: 0,
+        row_padding: theme.shape.row_padding.min(ROW_PADDING),
+        ..theme.shape
     }
-    style
+}
+
+/// Neutral elevated fill for the selected completion row.
+pub(super) fn selected_row_fill(theme: &Theme) -> Rgb {
+    theme.raised.mix(theme.foreground, SELECTED_FILL_SHARE)
+}
+
+/// The floating box style for the completion popup and its documentation card.
+fn menu_box(theme: &Theme, shape: &Shape, scale_factor: f64) -> BoxStyle {
+    shape.floating_box(theme.raised, theme.border, scale_factor)
 }
 
 /// Draws the scroll thumb at the right of `content`: as tall a share of it
@@ -234,21 +259,15 @@ fn draw_thumb(
     frame.draw_box(thumb, &style);
 }
 
-/// Fills `row` as the selected one, lined with a thin accent border.
+/// Fills `row` with a neutral elevated band.
 fn draw_selection(frame: &mut Frame, row: Rect, theme: &Theme) {
-    let scale_factor = frame.scale_factor();
-    let band = theme.shape.highlight_band(row, scale_factor);
-    let mut style = theme.shape.highlight(theme.selected_row, scale_factor);
-    style.border = Some(Border {
-        color: Rgba::from(theme.accent),
-        width: (scale_factor as f32).round().max(1.0),
-    });
-    frame.draw_box(band, &style);
+    frame.fill_rect(row, selected_row_fill(theme));
 }
 
 /// Draws `item`'s kind chip, label, and detail across `columns` from
 /// `origin`, clipped to `row`, the characters of its label `typed` matched
 /// marked and its detail at the row's right end.
+#[allow(clippy::too_many_arguments)]
 fn draw_row(
     frame: &mut Frame,
     item: &CompletionItem,
@@ -256,6 +275,8 @@ fn draw_row(
     columns: Columns,
     origin: Point,
     row: Rect,
+    row_bg: Rgb,
+    shape: &Shape,
     theme: &Theme,
 ) {
     let metrics = frame.cell_metrics();
@@ -271,8 +292,8 @@ fn draw_row(
         );
         let style = BoxStyle {
             border: None,
-            corner_radius: f32::from(theme.shape.control_radius) * frame.scale_factor() as f32,
-            fill: Rgba::from(theme.raised.mix(rgb, CHIP_TINT)),
+            corner_radius: f32::from(shape.control_radius) * frame.scale_factor() as f32,
+            fill: Rgba::from(row_bg.mix(rgb, CHIP_TINT)),
             shadow: None,
         };
         frame.draw_box(chip, &style);
@@ -293,7 +314,7 @@ fn draw_row(
     }
 }
 
-/// `label` with the characters `typed` matches in it bold in the accent
+/// `label` with the characters `typed` matches in it bold in the match-text
 /// color, the rest in the foreground.
 fn marked_label(label: &str, typed: &str) -> StyledText {
     let positions = fuzzy_score(typed, label).map_or_else(Vec::new, |found| found.positions);
@@ -301,7 +322,7 @@ fn marked_label(label: &str, typed: &str) -> StyledText {
         label,
         &positions,
         ThemeToken::Foreground.into(),
-        ThemeToken::Accent.into(),
+        ThemeToken::MatchText.into(),
     )
 }
 
@@ -344,7 +365,13 @@ fn tone_colors(tone: Option<u8>, theme: &Theme) -> (TextColor, Rgb) {
 /// detail) over a thin line, the documentation, and under it where the
 /// match came from. Nothing when the match has no documentation or no room
 /// for a row of it.
-fn draw_documentation(frame: &mut Frame, item: &CompletionItem, list: Rect, theme: &Theme) {
+fn draw_documentation(
+    frame: &mut Frame,
+    item: &CompletionItem,
+    list: Rect,
+    shape: &Shape,
+    theme: &Theme,
+) {
     let Some(documentation) = item.documentation.as_deref().map(str::trim) else {
         return;
     };
@@ -353,7 +380,7 @@ fn draw_documentation(frame: &mut Frame, item: &CompletionItem, list: Rect, them
     }
     let metrics = frame.cell_metrics();
     let scale_factor = frame.scale_factor();
-    let inset = Popup::inset(&theme.shape, scale_factor);
+    let inset = Popup::inset(shape, scale_factor);
     let padding = metrics.width.round();
     let frame_width = 2.0 * (padding + inset);
     let paragraph = Paragraph::plain(documentation, ThemeToken::Foreground.into());
@@ -403,9 +430,9 @@ fn draw_documentation(frame: &mut Frame, item: &CompletionItem, list: Rect, them
     if text_height < metrics.height {
         return;
     }
-    let style = menu_box(theme, scale_factor);
+    let style = menu_box(theme, shape, scale_factor);
     frame.overlay(|frame| frame.draw_box(rect, &style));
-    let content = Popup::with_rect(rect).content(&theme.shape, scale_factor);
+    let content = Popup::with_rect(rect).content(shape, scale_factor);
     let top = content.y + padding / 2.0;
     let text = Rect::new(content.x + padding, top + heading, text_width, text_height);
     frame.overlay(|frame| {
@@ -585,12 +612,12 @@ mod tests {
     }
 
     #[test]
-    fn test_the_typed_characters_of_a_label_are_marked_in_the_accent_color() {
+    fn test_the_typed_characters_of_a_label_are_marked_in_the_match_text_color() {
         let label = marked_label("into_iter", "it");
         let marked: Vec<&str> = label
             .spans()
             .iter()
-            .filter(|span| span.color == ThemeToken::Accent.into())
+            .filter(|span| span.color == ThemeToken::MatchText.into())
             .map(|span| span.text.as_str())
             .collect();
         assert!(!marked.is_empty(), "{label:?}");
@@ -600,5 +627,20 @@ mod tests {
             4,
             "nothing typed, the whole label"
         );
+    }
+
+    #[test]
+    fn test_popup_shape_tightens_modern_radii_and_preserves_grid_shape() {
+        let modern = popup_shape(&Theme::dark());
+        assert_eq!(modern.corner_radius, POPUP_CORNER_RADIUS);
+        assert_eq!(modern.control_radius, CHIP_CORNER_RADIUS);
+        assert_eq!(modern.highlight_inset, 0);
+        assert_eq!(modern.row_padding, ROW_PADDING);
+
+        let grid = popup_shape(&Theme::dark().with_grid_look());
+        assert_eq!(grid.corner_radius, 0);
+        assert_eq!(grid.control_radius, 0);
+        assert_eq!(grid.highlight_inset, 0);
+        assert_eq!(grid.row_padding, 0);
     }
 }

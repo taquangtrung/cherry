@@ -1278,8 +1278,8 @@ mod tests {
             metrics.height,
         );
         assert!(
-            snapshot.contains_color(first_row, theme.selection),
-            "the typed match is lit"
+            snapshot.contains_color(first_row, completion::selected_row_fill(&theme)),
+            "the typed match is lit with a neutral fill"
         );
         assert!(
             snapshot.contains_color(first_row, theme.border),
