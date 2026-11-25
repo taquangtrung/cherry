@@ -33,8 +33,12 @@
 //! the char typed is one of a provider's
 //! [`trigger_characters`](CompletionProvider::trigger_characters) (`.`
 //! after a value): the providers' matches, then the words of the open
-//! documents. `C-n` types the first, and any key but those that narrow the
-//! menu closes it with nothing typed.
+//! documents. `C-n` and `<down>` highlight the next match, `C-p` and
+//! `<up>` the previous one, typing none of them: `accept-completion` types
+//! the one highlighted, `C-g` closes the menu, and any key but those that
+//! narrow the menu closes it with nothing typed.
+//!
+//! # Completion from `C-x`
 //!
 //! The first match is typed at once in place of what was being completed,
 //! and the menu opens ([`View::completion`](crate::View::completion)).
@@ -75,7 +79,7 @@ const AUTO_MIN_CHARS: usize = 2;
 // Data Structures
 // ========================================================================
 
-/// An open completion menu: the matches, the one typed, and where the
+/// An open completion menu: the matches, the one chosen, and where the
 /// completed text starts.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Completion {
@@ -91,8 +95,12 @@ pub struct Completion {
     /// The command sequence number the menu was last used at; any later
     /// command closes it.
     seq: u64,
-    /// The match typed now, or `None` while the original text is back.
+    /// The match chosen now, or `None` while none is (in a typing menu,
+    /// while the original text is back).
     selected: Option<usize>,
+    /// Whether choosing a match types it, as in a menu `C-x` opened; the
+    /// automatic menu only highlights it, for `accept-completion` to type.
+    typing: bool,
 }
 
 /// One match in a completion menu.
@@ -189,7 +197,8 @@ pub(crate) struct CompletionWait {
     prefix: String,
     /// The completion the tickets are for.
     request: u64,
-    /// Whether the first match is typed as the menu opens.
+    /// Whether the menu types its matches as they are chosen, the first as
+    /// it opens.
     select_first: bool,
 }
 
@@ -270,15 +279,15 @@ impl Completion {
         &self.original
     }
 
-    /// The index of the match typed now, or `None` while the text first
-    /// typed is back in place.
+    /// The index of the match chosen now: typed in a menu `C-x` opened,
+    /// highlighted only in the automatic one; `None` while none is.
     pub fn selected(&self) -> Option<usize> {
         self.selected
     }
 
     /// The index of the match `accept-completion` takes, for the host to
-    /// highlight: the one typed now, else the first; `None` for a menu with
-    /// no match.
+    /// highlight: the one chosen now, else the first; `None` for a menu
+    /// with no match.
     pub fn highlighted(&self) -> Option<usize> {
         self.selected
             .or_else(|| (!self.items.is_empty()).then_some(0))
@@ -380,8 +389,8 @@ impl CompletionItem {
 // Functions
 // ========================================================================
 
-/// `C-g` in Insert mode: puts back the text first typed and closes the
-/// menu. When none is open, in a view that never leaves Insert mode, drops
+/// `C-g` in Insert mode: closes the menu, putting back the text first
+/// typed where the menu typed a match. When none is open, in a view that never leaves Insert mode, drops
 /// the selection (and the Emacs region), or else asks the host to cancel
 /// a single-line field; elsewhere, nothing.
 pub(crate) fn cancel_completion(cx: &mut CommandContext<'_>) {
@@ -398,6 +407,9 @@ pub(crate) fn cancel_completion(cx: &mut CommandContext<'_>) {
         }
         return;
     };
+    if !completion.typing {
+        return;
+    }
     let cursor = cx.editor.view_ref(cx.view).cursor();
     let original = completion.original.clone();
     replace_completed(cx.editor, cx.view, completion.anchor, cursor, &original);
@@ -411,10 +423,10 @@ pub(crate) fn accept_completion(cx: &mut CommandContext<'_>) {
     let Some(completion) = cx.editor.view_mut(cx.view).take_completion() else {
         return;
     };
-    if completion.selected.is_some() {
+    if completion.typing && completion.selected.is_some() {
         return;
     }
-    if let Some(item) = completion.items.first() {
+    if let Some(item) = completion.highlighted().map(|index| &completion.items[index]) {
         let cursor = cx.editor.view_ref(cx.view).cursor();
         type_item(cx.editor, cx.view, completion.anchor, cursor, item);
     }
@@ -684,7 +696,8 @@ fn open_words(
 }
 
 /// Opens a menu of `items` on the text `typed` from `anchor` to the cursor
-/// of `view`, typing the first when `select_first`.
+/// of `view`, typing the first and then each match chosen when
+/// `select_first`.
 fn open_menu(
     editor: &mut Editor,
     view: ViewId,
@@ -705,6 +718,7 @@ fn open_menu(
         original: typed,
         seq: editor.command_seq(),
         selected,
+        typing: select_first,
     };
     editor.view_mut(view).set_completion(Some(completion));
 }
@@ -784,8 +798,9 @@ pub(crate) fn receive_answer(
     }
 }
 
-/// Types the next (or previous) match of the open menu, going through the
-/// text first typed; returns whether a menu was open.
+/// Chooses the next (or previous) match of the open menu, going through
+/// the text first typed, and types it in a typing menu; returns whether a
+/// menu was open.
 fn step(cx: &mut CommandContext<'_>, forward: bool) -> bool {
     let Some(mut completion) = cx.editor.view_mut(cx.view).take_completion() else {
         return false;
@@ -798,16 +813,17 @@ fn step(cx: &mut CommandContext<'_>, forward: bool) -> bool {
         (Some(index), false) => index.checked_sub(1),
     };
     let cursor = cx.editor.view_ref(cx.view).cursor();
-    match completion.selected {
+    match completion.selected.filter(|_| completion.typing) {
         Some(index) => {
             let item = completion.items[index].clone();
             type_item(cx.editor, cx.view, completion.anchor, cursor, &item);
         }
-        None => {
+        None if completion.typing => {
             let original = completion.original.clone();
             replace_completed(cx.editor, cx.view, completion.anchor, cursor, &original);
             cx.editor.view_mut(cx.view).set_snippet(None);
         }
+        None => {}
     }
     completion.seq = cx.editor.command_seq();
     cx.editor.view_mut(cx.view).set_completion(Some(completion));
@@ -1125,8 +1141,19 @@ mod tests {
             "the first, for Tab to take"
         );
         assert_eq!(harness.marked(), "lemon lever\nle|", "nothing typed");
-        harness.keys("C-n");
-        assert_eq!(harness.marked(), "lemon lever\nlen|");
+        harness.keys("C-n <down>");
+        assert_eq!(harness.marked(), "lemon lever\nle|", "moving types nothing");
+        assert_eq!(menu(&harness).unwrap().highlighted(), Some(1));
+        harness.keys("C-g");
+        assert_eq!(menu(&harness), None);
+        assert_eq!(harness.marked(), "lemon lever\nle|", "nothing to put back");
+        harness.keys("<bs> e C-n");
+        let view = harness.view;
+        harness
+            .editor
+            .run_command(view, "accept-completion", None)
+            .expect("a command");
+        assert_eq!(harness.marked(), "lemon lever\nlen|", "the one highlighted");
         harness.keys("<esc> o s .");
         let completion = menu(&harness).expect("the trigger opens it");
         assert_eq!(completion.items()[0].kind, Some(CompletionKind::Method));
