@@ -161,7 +161,7 @@ impl Direction {
 
 impl LastSearch {
     /// The search for `pattern`, compiled as `regex`, going `direction`.
-    pub fn new(direction: Direction, pattern: String, regex: Regex) -> Self {
+    pub(crate) fn new(direction: Direction, pattern: String, regex: Regex) -> Self {
         Self {
             direction,
             pattern,
@@ -170,12 +170,12 @@ impl LastSearch {
     }
 
     /// The pattern as typed.
-    pub fn pattern(&self) -> &str {
+    pub(crate) fn pattern(&self) -> &str {
         &self.pattern
     }
 
     /// The pattern compiled, for painting its matches.
-    pub fn regex(&self) -> &Regex {
+    pub(crate) fn regex(&self) -> &Regex {
         &self.regex
     }
 }

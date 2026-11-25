@@ -278,7 +278,7 @@ impl Recall {
     /// The line to show for the next newer of `entries`, oldest first: the
     /// entry, or the line typed before recalling past the newest; `None`
     /// when no entry is shown.
-    pub fn newer(&mut self, entries: &[String]) -> Option<String> {
+    pub(crate) fn newer(&mut self, entries: &[String]) -> Option<String> {
         let index = self.recalled? + 1;
         match entries.get(index) {
             Some(entry) => {
@@ -295,7 +295,7 @@ impl Recall {
     /// The line to show for the next older of `entries`, oldest first,
     /// keeping `typed`, the line shown, to come back to when no entry is
     /// shown yet; `None` at the oldest.
-    pub fn older(&mut self, entries: &[String], typed: &str) -> Option<String> {
+    pub(crate) fn older(&mut self, entries: &[String], typed: &str) -> Option<String> {
         let index = match self.recalled {
             Some(index) => index.checked_sub(1)?,
             None => entries.len().checked_sub(1)?,
@@ -315,13 +315,13 @@ impl Recall {
 
 impl PromptHistory {
     /// The entries, oldest first.
-    pub fn entries(&self) -> &[String] {
+    pub(crate) fn entries(&self) -> &[String] {
         &self.entries
     }
 
     /// Adds `entry` as the newest, moving it there if it was already kept
     /// and dropping the oldest when full. An empty entry is not kept.
-    pub fn push(&mut self, entry: &str) {
+    pub(crate) fn push(&mut self, entry: &str) {
         if entry.is_empty() {
             return;
         }

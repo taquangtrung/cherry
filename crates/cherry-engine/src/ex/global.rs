@@ -70,7 +70,7 @@ pub(crate) struct LineAnchors {
 
 impl LineAnchors {
     /// Follows `lines` of `document`, ascending line numbers from 0.
-    pub fn new(document: &Document, lines: &[usize]) -> Self {
+    pub(crate) fn new(document: &Document, lines: &[usize]) -> Self {
         let last = document.len_lines() - 1;
         let points: Vec<isize> = lines
             .iter()
@@ -94,7 +94,7 @@ impl LineAnchors {
 
     /// Carries the lines not yet handed out across `changes`: the points
     /// inside the changed range one by one, those past it all at once.
-    pub fn map(&mut self, changes: &ChangeSet) {
+    pub(crate) fn map(&mut self, changes: &ChangeSet) {
         let Some(changed) = changes.changed_range() else {
             return;
         };
@@ -119,7 +119,7 @@ impl LineAnchors {
     /// Where the next line to run on starts in `document`, skipping lines
     /// deleted or joined into another and lines whose start text was
     /// typed at; `None` when none is left.
-    pub fn next_line(&mut self, document: &Document) -> Option<usize> {
+    pub(crate) fn next_line(&mut self, document: &Document) -> Option<usize> {
         let lines = self.points.len() / POINTS_PER_LINE;
         while self.next < lines {
             let line = self.next;

@@ -97,7 +97,7 @@ impl Block {
     /// The chars of line `line` inside the block: the clusters covering
     /// any of its cells, or an empty range where the block starts (the
     /// line end of a line too short to reach it).
-    pub fn chars_on(
+    pub(crate) fn chars_on(
         &self,
         document: &Document,
         options: &EditorOptions,
@@ -124,7 +124,7 @@ impl Block {
     }
 
     /// The chars inside the block on each of its lines, top first.
-    pub fn ranges(&self, document: &Document, options: &EditorOptions) -> Vec<Range<usize>> {
+    pub(crate) fn ranges(&self, document: &Document, options: &EditorOptions) -> Vec<Range<usize>> {
         (self.first..=self.last)
             .map(|line| self.chars_on(document, options, line))
             .collect()

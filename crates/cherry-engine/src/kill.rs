@@ -90,7 +90,7 @@ struct Yank {
 
 impl KillRing {
     /// The entry `C-y` yanks, if any.
-    pub fn current(&self) -> Option<&str> {
+    pub(crate) fn current(&self) -> Option<&str> {
         let index = self.kills.len().checked_sub(1 + self.pointer)?;
         self.kills.get(index).map(String::as_str)
     }
@@ -100,7 +100,7 @@ impl KillRing {
     /// before, else pushed as the newest, dropping the oldest when full.
     /// Empty text adds nothing but keeps a run of kills going. Moves the
     /// yank pointer to the newest entry.
-    pub fn kill(&mut self, kill: Kill, seq: u64) {
+    pub(crate) fn kill(&mut self, kill: Kill, seq: u64) {
         let chained = self.last_kill.is_some_and(|last| last + 1 == seq);
         self.last_kill = Some(seq);
         self.pointer = 0;
@@ -122,7 +122,7 @@ impl KillRing {
     }
 
     /// Records that the command numbered `seq` yanked text into `range`.
-    pub fn record_yank(&mut self, range: Range<usize>, seq: u64) {
+    pub(crate) fn record_yank(&mut self, range: Range<usize>, seq: u64) {
         self.last_yank = Some(Yank { range, seq });
     }
 
@@ -130,7 +130,7 @@ impl KillRing {
     /// before was a yank, moves the yank pointer one entry older (from the
     /// oldest back to the newest) and returns the range that yank took
     /// with the entry to put there instead; `None` otherwise.
-    pub fn rotate(&mut self, seq: u64) -> Option<(Range<usize>, String)> {
+    pub(crate) fn rotate(&mut self, seq: u64) -> Option<(Range<usize>, String)> {
         let yank = self.last_yank.take()?;
         if yank.seq + 1 != seq || self.kills.is_empty() {
             return None;

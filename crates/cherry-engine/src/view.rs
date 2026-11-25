@@ -361,7 +361,7 @@ pub(crate) struct TextArea<'a> {
 impl<'a> TextArea<'a> {
     /// The text area of `document`, with its `decorations`, in a view
     /// `cols` cells wide, every conceal hidden.
-    pub fn new(
+    pub(crate) fn new(
         document: &'a Document,
         decorations: &'a Decorations,
         options: &'a EditorOptions,
@@ -392,7 +392,7 @@ impl<'a> TextArea<'a> {
 
     /// The lanes of signs, left to right: each lane's name (`None` for the
     /// sign column), the cell it starts at, and its width.
-    pub fn lanes(&self) -> Vec<(Option<&'a str>, usize, usize)> {
+    pub(crate) fn lanes(&self) -> Vec<(Option<&'a str>, usize, usize)> {
         let mut start = 0;
         lane_widths(self.decorations, self.options)
             .map(|(name, width)| {
@@ -405,13 +405,13 @@ impl<'a> TextArea<'a> {
 
     /// Whether line `line` is long enough, and not wrapped, to be laid out
     /// only where it is in sight.
-    pub fn is_long_line(&self, line: usize) -> bool {
+    pub(crate) fn is_long_line(&self, line: usize) -> bool {
         !self.options.wrap && self.line_len(line) > LONG_LINE_CHARS
     }
 
     /// The text of the part of long line `line` covering cells `from` to
     /// `to`, with the char column and the cell its first cluster starts at.
-    pub fn window(&self, line: usize, from: usize, to: usize) -> (String, usize, usize) {
+    pub(crate) fn window(&self, line: usize, from: usize, to: usize) -> (String, usize, usize) {
         let tab = self.options.tab_stop();
         let (mut column, mut x) = (0, 0);
         let mut start = None;
@@ -482,7 +482,7 @@ impl<'a> TextArea<'a> {
     }
 
     /// This text area with the concealed text of line `line` shown.
-    pub fn revealing(self, line: Option<usize>) -> Self {
+    pub(crate) fn revealing(self, line: Option<usize>) -> Self {
         Self {
             revealed: line,
             ..self
@@ -492,13 +492,13 @@ impl<'a> TextArea<'a> {
     /// Whether the glyph of inlay `index`, as [`TextArea::layout`] numbers
     /// them, is of the text an input method is composing: the index past
     /// the document's inlays.
-    pub fn is_preedit(&self, index: usize) -> bool {
+    pub(crate) fn is_preedit(&self, index: usize) -> bool {
         index == self.decorations.inlays_by_offset().len()
     }
 
     /// The layout of `text`, line `line` of the document, with the inlays
     /// on it and its concealed text hidden, unless it is the revealed line.
-    pub fn layout<'t>(&self, line: usize, text: &'t str) -> LineLayout<'t>
+    pub(crate) fn layout<'t>(&self, line: usize, text: &'t str) -> LineLayout<'t>
     where
         'a: 't,
     {
@@ -565,7 +565,7 @@ impl<'a> TextArea<'a> {
 
     /// The row and cell where the cursor at char `offset` is shown, with
     /// the line it is on.
-    pub fn locate(&self, offset: usize) -> (usize, RowCell) {
+    pub(crate) fn locate(&self, offset: usize) -> (usize, RowCell) {
         let offset = offset.min(self.document.len_chars());
         let Position { column, line } = self
             .document

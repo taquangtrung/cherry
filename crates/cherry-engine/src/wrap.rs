@@ -173,7 +173,7 @@ impl Row<'_> {
     /// The glyph taking cell `x` of the row, or the leftmost glyph when `x`
     /// is left of them all (in a wrapped row's break indent); `None` past
     /// the row's last cell or for a row with no glyphs.
-    pub fn glyph_at(&self, x: usize) -> Option<&Glyph<'_>> {
+    pub(crate) fn glyph_at(&self, x: usize) -> Option<&Glyph<'_>> {
         self.glyphs
             .iter()
             .find(|glyph| glyph.covers(x))
@@ -194,7 +194,7 @@ impl<'a> LineLayout<'a> {
     /// The layout of `text`, one line without its break, with tab stops
     /// every `tab_width` cells, wrapped into rows of `wrap_width` cells at
     /// chars when given.
-    pub fn new(text: &'a str, wrap_width: Option<usize>, tab_width: usize) -> Self {
+    pub(crate) fn new(text: &'a str, wrap_width: Option<usize>, tab_width: usize) -> Self {
         let wrap = wrap_width.map(|width| Wrap {
             break_indent: BreakIndent::None,
             mode: WrapMode::Chars,
@@ -207,7 +207,7 @@ impl<'a> LineLayout<'a> {
     /// `inlays`, sorted by column, each before the cluster at its column,
     /// and without the clusters whose first char is in one of the `hidden`
     /// char ranges, wrapped as `wrap` says when given.
-    pub fn decorated(
+    pub(crate) fn decorated(
         text: &'a str,
         inlays: &[LineInlay<'a>],
         hidden: &[Range<usize>],
@@ -266,7 +266,7 @@ impl<'a> LineLayout<'a> {
     }
 
     /// Adds `count` rows of virtual lines after the text's.
-    pub fn push_virtual_rows(&mut self, count: usize) {
+    pub(crate) fn push_virtual_rows(&mut self, count: usize) {
         for index in 0..count {
             self.rows.push(Row {
                 virtual_line: Some(index),
@@ -278,7 +278,7 @@ impl<'a> LineLayout<'a> {
     /// The layout of `text`, a part of a line that is not wrapped, whose
     /// first cluster is char `column` of the line and starts at cell `x`:
     /// one row, its glyphs placed as in the whole line's layout.
-    pub fn window(text: &'a str, column: usize, x: usize, tab_width: usize) -> Self {
+    pub(crate) fn window(text: &'a str, column: usize, x: usize, tab_width: usize) -> Self {
         let mut row = Row {
             glyphs: Vec::new(),
             virtual_line: None,
@@ -311,7 +311,7 @@ impl<'a> LineLayout<'a> {
     /// first row, or the end of the text laid out when `x` is past its last
     /// cluster. Meant for a layout made without wrapping, whose one row is
     /// the line.
-    pub fn column_at(&self, x: usize) -> usize {
+    pub(crate) fn column_at(&self, x: usize) -> usize {
         self.rows[0]
             .glyph_at(x)
             .map_or(self.end, |glyph| glyph.column)
@@ -321,7 +321,7 @@ impl<'a> LineLayout<'a> {
     /// An offset inside a cluster shows on the cluster; one at or past the
     /// end of the line shows just after the last cluster, kept on the last
     /// cell of a wrapped row that is full.
-    pub fn locate(&self, column: usize) -> RowCell {
+    pub(crate) fn locate(&self, column: usize) -> RowCell {
         for (row, cells) in self.rows.iter().enumerate() {
             let glyph = cells
                 .glyphs
@@ -341,7 +341,7 @@ impl<'a> LineLayout<'a> {
     }
 
     /// The rows, top first.
-    pub fn rows(&self) -> &[Row<'a>] {
+    pub(crate) fn rows(&self) -> &[Row<'a>] {
         &self.rows
     }
 
@@ -444,13 +444,13 @@ impl<'a> LineLayout<'a> {
 
 impl Glyph<'_> {
     /// Whether the glyph takes cell `x` of its row.
-    pub fn covers(&self, x: usize) -> bool {
+    pub(crate) fn covers(&self, x: usize) -> bool {
         (self.x..self.x + self.width).contains(&x)
     }
 
     /// The chars of the line the cluster stands for: none for a cluster of
     /// an inlay.
-    pub fn char_len(&self) -> usize {
+    pub(crate) fn char_len(&self) -> usize {
         match self.inlay {
             Some(_) => 0,
             None => self.text.chars().count(),

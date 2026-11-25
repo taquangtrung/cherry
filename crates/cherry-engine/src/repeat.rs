@@ -100,7 +100,7 @@ impl ChangeCandidate {
     /// Whether a count digit typed now belongs to the keys: one typed
     /// after the first command and not after an operator (those are kept
     /// as the count instead), as in `v3jd`.
-    pub fn takes_count_digit(&self, mode: Mode) -> bool {
+    pub(crate) fn takes_count_digit(&self, mode: Mode) -> bool {
         self.has_command && mode != Mode::OperatorPending
     }
 }
@@ -111,12 +111,12 @@ impl ChangeCandidate {
 
 impl MacroRecording {
     /// The register the keys go to.
-    pub fn register(&self) -> char {
+    pub(crate) fn register(&self) -> char {
         self.register
     }
 
     /// Adds `key`, just typed.
-    pub fn push(&mut self, key: Key) {
+    pub(crate) fn push(&mut self, key: Key) {
         self.keys.push(key);
     }
 }

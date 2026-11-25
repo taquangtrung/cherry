@@ -197,7 +197,7 @@ impl Clipboard for MemoryClipboard {
 
 impl ReadOnlyRegister {
     /// The read-only register `name` names, if it names one.
-    pub fn named(name: char) -> Option<Self> {
+    pub(crate) fn named(name: char) -> Option<Self> {
         match name {
             DOCUMENT_NAME => Some(Self::DocumentName),
             LAST_COMMAND => Some(Self::LastCommand),
@@ -215,7 +215,7 @@ impl ReadOnlyRegister {
 impl RegisterText {
     /// `text` put back as `kind`; linewise text is given its final line
     /// break when it lacks one.
-    pub fn new(kind: RegisterKind, text: impl Into<String>) -> Self {
+    pub(crate) fn new(kind: RegisterKind, text: impl Into<String>) -> Self {
         let mut text = text.into();
         if kind == RegisterKind::Linewise && !text.ends_with(LINE_BREAK) {
             text.push(LINE_BREAK);
@@ -248,7 +248,7 @@ impl RegisterText {
 
 impl Registers {
     /// Empty registers over `clipboard`.
-    pub fn new(clipboard: Box<dyn Clipboard + Send>) -> Self {
+    pub(crate) fn new(clipboard: Box<dyn Clipboard + Send>) -> Self {
         Self {
             clipboard,
             put_on_clipboard: HashMap::new(),
@@ -259,24 +259,24 @@ impl Registers {
 
     /// Makes the unnamed register the system clipboard, or with `false`
     /// the editor's own register again.
-    pub fn set_unnamed_clipboard(&mut self, unnamed_clipboard: bool) {
+    pub(crate) fn set_unnamed_clipboard(&mut self, unnamed_clipboard: bool) {
         self.unnamed_clipboard = unnamed_clipboard;
     }
 
     /// The text of every register but `+`, `*`, and `_`, to put back with
     /// [`Registers::restore`].
-    pub fn stored(&self) -> HashMap<char, RegisterText> {
+    pub(crate) fn stored(&self) -> HashMap<char, RegisterText> {
         self.slots.clone()
     }
 
     /// Puts back the text of every register but `+`, `*`, and `_` as
     /// [`Registers::stored`] read it.
-    pub fn restore(&mut self, slots: HashMap<char, RegisterText>) {
+    pub(crate) fn restore(&mut self, slots: HashMap<char, RegisterText>) {
         self.slots = slots;
     }
 
     /// Whether `name` names a register, read-only ones included.
-    pub fn is_name(name: char) -> bool {
+    pub(crate) fn is_name(name: char) -> bool {
         name.is_ascii_alphanumeric()
             || [BLACK_HOLE, CLIPBOARD, PRIMARY, SMALL_DELETE, UNNAMED].contains(&name)
             || ReadOnlyRegister::named(name).is_some()
@@ -288,7 +288,7 @@ impl Registers {
     /// when it ends in a line break. An unnamed register that is the
     /// clipboard falls back to the editor's own when the clipboard gives
     /// nothing.
-    pub fn read(&mut self, name: Option<char>) -> Option<RegisterText> {
+    pub(crate) fn read(&mut self, name: Option<char>) -> Option<RegisterText> {
         let name = name.unwrap_or(UNNAMED);
         let selection = match name {
             UNNAMED if self.unnamed_clipboard => Some(ClipboardSelection::Clipboard),
@@ -306,7 +306,7 @@ impl Registers {
     /// Records `text` deleted into register `name`: with none selected, a
     /// delete of lines or across a line break goes to `1` (older deletes
     /// shifted toward `9`), a smaller one to `-`.
-    pub fn record_delete(&mut self, name: Option<char>, text: RegisterText) {
+    pub(crate) fn record_delete(&mut self, name: Option<char>, text: RegisterText) {
         if name.is_some() {
             return self.write(name, text);
         }
@@ -326,7 +326,7 @@ impl Registers {
 
     /// Records `text` yanked into register `name`: with none selected, it
     /// also goes to `0`.
-    pub fn record_yank(&mut self, name: Option<char>, text: RegisterText) {
+    pub(crate) fn record_yank(&mut self, name: Option<char>, text: RegisterText) {
         if name.is_none() {
             self.slots.insert(YANK, text.clone());
         }
@@ -336,7 +336,7 @@ impl Registers {
     /// Records the key notation `keys` of a macro into register `name`
     /// alone, appended (after a space) for an uppercase name; the unnamed
     /// register is left as it was.
-    pub fn record_macro(&mut self, name: char, keys: String) {
+    pub(crate) fn record_macro(&mut self, name: char, keys: String) {
         let lower = name.to_ascii_lowercase();
         let text = match (name.is_ascii_uppercase(), self.slots.remove(&lower)) {
             (true, Some(old)) if !old.text.is_empty() => format!("{} {keys}", old.text),
@@ -347,7 +347,7 @@ impl Registers {
     }
 
     /// Replaces the clipboard behind `+` and `*`.
-    pub fn set_clipboard(&mut self, clipboard: Box<dyn Clipboard + Send>) {
+    pub(crate) fn set_clipboard(&mut self, clipboard: Box<dyn Clipboard + Send>) {
         self.clipboard = clipboard;
     }
 

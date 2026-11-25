@@ -409,26 +409,26 @@ impl GutterLane {
 
 impl Decorations {
     /// Drops every conceal, decoration, inlay, and sign of `owner`.
-    pub fn clear(&mut self, owner: &str) {
+    pub(crate) fn clear(&mut self, owner: &str) {
         self.owners.remove(owner);
         self.merge_conceals();
         self.merge_inlays();
     }
 
     /// The conceals of `owner`, in the order given, as edits left them.
-    pub fn conceals(&self, owner: &str) -> &[Range<usize>] {
+    pub(crate) fn conceals(&self, owner: &str) -> &[Range<usize>] {
         self.owners
             .get(owner)
             .map_or(&[], |set| set.conceals.as_slice())
     }
 
     /// Every owner's conceals, by start.
-    pub fn conceals_by_offset(&self) -> &[Range<usize>] {
+    pub(crate) fn conceals_by_offset(&self) -> &[Range<usize>] {
         &self.conceals
     }
 
     /// The decorations of `owner`, in the order given, as edits left them.
-    pub fn decorations(&self, owner: &str) -> &[Decoration] {
+    pub(crate) fn decorations(&self, owner: &str) -> &[Decoration] {
         self.owners
             .get(owner)
             .map_or(&[], |set| set.decorations.as_slice())
@@ -436,7 +436,7 @@ impl Decorations {
 
     /// Carries every decoration and sign across `changes`, as the module
     /// documentation describes.
-    pub fn map(&mut self, changes: &ChangeSet) {
+    pub(crate) fn map(&mut self, changes: &ChangeSet) {
         for set in self.owners.values_mut() {
             set.conceals.retain_mut(|range| map_range(range, changes));
             set.decorations.retain_mut(|decoration| {
@@ -468,7 +468,7 @@ impl Decorations {
     /// Makes `conceals` the ones of `owner` in `document`, in place of any
     /// it had; ranges are clamped to the text and turned forward, and an
     /// empty one is dropped.
-    pub fn set_conceals(&mut self, document: &Document, owner: &str, conceals: Vec<Range<usize>>) {
+    pub(crate) fn set_conceals(&mut self, document: &Document, owner: &str, conceals: Vec<Range<usize>>) {
         let len = document.len_chars();
         let clamped = conceals
             .into_iter()
@@ -484,7 +484,7 @@ impl Decorations {
 
     /// Makes `decorations` the ones of `owner` in `document`, in place of
     /// any it had; ranges are clamped to the text and turned forward.
-    pub fn set_decorations(
+    pub(crate) fn set_decorations(
         &mut self,
         document: &Document,
         owner: &str,
@@ -508,21 +508,21 @@ impl Decorations {
     }
 
     /// The inlays of `owner`, in the order given, as edits moved them.
-    pub fn inlays(&self, owner: &str) -> &[Inlay] {
+    pub(crate) fn inlays(&self, owner: &str) -> &[Inlay] {
         self.owners
             .get(owner)
             .map_or(&[], |set| set.inlays.as_slice())
     }
 
     /// Every owner's inlays, by offset.
-    pub fn inlays_by_offset(&self) -> &[Inlay] {
+    pub(crate) fn inlays_by_offset(&self) -> &[Inlay] {
         &self.inlays
     }
 
     /// Makes `inlays` the ones of `owner` in `document`, in place of any
     /// it had; one past the end of the text is dropped, and line breaks in
     /// the text become spaces.
-    pub fn set_inlays(&mut self, document: &Document, owner: &str, inlays: Vec<Inlay>) {
+    pub(crate) fn set_inlays(&mut self, document: &Document, owner: &str, inlays: Vec<Inlay>) {
         let len = document.len_chars();
         let one_line = inlays
             .into_iter()
@@ -542,7 +542,7 @@ impl Decorations {
 
     /// Makes `signs` the ones of `owner` in `document`, in place of any it
     /// had; a line past the end stands by the last line.
-    pub fn set_signs(&mut self, document: &Document, owner: &str, signs: Vec<Sign>) {
+    pub(crate) fn set_signs(&mut self, document: &Document, owner: &str, signs: Vec<Sign>) {
         let last_line = last_line(document);
         let anchored = signs
             .into_iter()
@@ -559,7 +559,7 @@ impl Decorations {
 
     /// Makes `changes` the changed lines of `owner` in `document`, in
     /// place of any it had; a line past the end stands for the last line.
-    pub fn set_line_changes(
+    pub(crate) fn set_line_changes(
         &mut self,
         document: &Document,
         owner: &str,
@@ -578,7 +578,7 @@ impl Decorations {
 
     /// The changed lines of `owner`, in the order given, on the lines edits
     /// left them on in `document`.
-    pub fn line_changes(&self, document: &Document, owner: &str) -> Vec<ChangedLine> {
+    pub(crate) fn line_changes(&self, document: &Document, owner: &str) -> Vec<ChangedLine> {
         self.owners.get(owner).map_or_else(Vec::new, |set| {
             set.changes
                 .iter()
@@ -593,7 +593,7 @@ impl Decorations {
     /// What became of each of the lines `lines` of `document`, as every
     /// owner marked them; where owners differ on a line, a modified line
     /// wins over an added one, and either over a deletion above it.
-    pub fn changes_on_lines(
+    pub(crate) fn changes_on_lines(
         &self,
         document: &Document,
         lines: Range<usize>,
@@ -621,7 +621,7 @@ impl Decorations {
 
     /// The signs of `owner`, in the order given, on the lines edits left
     /// them on in `document`.
-    pub fn signs(&self, document: &Document, owner: &str) -> Vec<Sign> {
+    pub(crate) fn signs(&self, document: &Document, owner: &str) -> Vec<Sign> {
         self.owners.get(owner).map_or_else(Vec::new, |set| {
             set.signs
                 .iter()
@@ -639,7 +639,7 @@ impl Decorations {
     /// What the signs by line `line` of `document` say in words, in any
     /// lane, the most severe first, joined a line apart; `None` when none
     /// there has a note.
-    pub fn sign_note(&self, document: &Document, line: usize) -> Option<String> {
+    pub(crate) fn sign_note(&self, document: &Document, line: usize) -> Option<String> {
         let mut noted: Vec<(&AnchoredSign, &str)> = self
             .owners
             .values()
@@ -654,7 +654,7 @@ impl Decorations {
 
     /// Makes `lines` the virtual lines of `owner` in `document`, in place
     /// of any it had; one after a line past the end shows after the last.
-    pub fn set_virtual_lines(&mut self, document: &Document, owner: &str, lines: Vec<VirtualLine>) {
+    pub(crate) fn set_virtual_lines(&mut self, document: &Document, owner: &str, lines: Vec<VirtualLine>) {
         let last_line = last_line(document);
         let anchored = lines
             .into_iter()
@@ -673,7 +673,7 @@ impl Decorations {
     /// The virtual lines shown after line `line` of `document`, every
     /// owner's, in owner order and then the order given, as their text and
     /// highlight.
-    pub fn virtual_lines_after(
+    pub(crate) fn virtual_lines_after(
         &self,
         document: &Document,
         line: usize,
@@ -691,19 +691,19 @@ impl Decorations {
     }
 
     /// The host's gutter lanes, left to right.
-    pub fn lanes(&self) -> &[GutterLane] {
+    pub(crate) fn lanes(&self) -> &[GutterLane] {
         &self.lanes
     }
 
     /// Makes `lanes` the host's gutter lanes, left to right.
-    pub fn set_lanes(&mut self, lanes: Vec<GutterLane>) {
+    pub(crate) fn set_lanes(&mut self, lanes: Vec<GutterLane>) {
         self.lanes = lanes;
     }
 
     /// The sign to show in `lane` (`None` for the sign column) by each of
     /// the lines `lines` of `document`, the most severe where several share
     /// a line, as `(text, kind)`.
-    pub fn signs_on_lines(
+    pub(crate) fn signs_on_lines(
         &self,
         document: &Document,
         lines: Range<usize>,
@@ -732,7 +732,7 @@ impl Decorations {
     }
 
     /// Every owner's decorations that touch the chars `range`.
-    pub fn touching(&self, range: Range<usize>) -> Vec<&Decoration> {
+    pub(crate) fn touching(&self, range: Range<usize>) -> Vec<&Decoration> {
         self.owners
             .values()
             .flat_map(|set| &set.decorations)

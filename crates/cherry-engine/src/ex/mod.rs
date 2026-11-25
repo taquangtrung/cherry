@@ -244,7 +244,7 @@ enum OptionName {
 
 impl ExRegistry {
     /// The registry of the editor's own ex commands.
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let commands = BUILTIN_EX_COMMANDS
             .iter()
             .map(|(name, run)| (name.to_string(), Arc::new(*run) as ExFn))
@@ -253,13 +253,13 @@ impl ExRegistry {
     }
 
     /// The function `name` runs, or `None` when no ex command has it.
-    pub fn get(&self, name: &str) -> Option<ExFn> {
+    pub(crate) fn get(&self, name: &str) -> Option<ExFn> {
         self.commands.get(name).cloned()
     }
 
     /// Registers `run` under `name`. Rejected when `name` is taken or is
     /// not a run of ASCII letters.
-    pub fn register(&mut self, name: String, run: ExFn) -> Result<(), CommandError> {
+    pub(crate) fn register(&mut self, name: String, run: ExFn) -> Result<(), CommandError> {
         if name.is_empty() || !name.chars().all(|c| c.is_ascii_alphabetic()) {
             return Err(CommandError::InvalidExName(name));
         }

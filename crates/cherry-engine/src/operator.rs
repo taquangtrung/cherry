@@ -167,7 +167,7 @@ impl Lines {
 impl Operand {
     /// The chars the operand covers, whole lines with the line break after
     /// the last.
-    pub fn chars(&self, document: &Document) -> Range<usize> {
+    pub(crate) fn chars(&self, document: &Document) -> Range<usize> {
         match self {
             Self::Charwise(range) => range.clone(),
             Self::Linewise(lines) => {

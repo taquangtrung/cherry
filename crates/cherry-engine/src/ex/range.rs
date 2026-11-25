@@ -105,7 +105,7 @@ pub(crate) enum AddressError {
 
 impl<'a> AddressContext<'a> {
     /// The context of a range typed in `view`, counting from its cursor.
-    pub fn new(editor: &'a Editor, view: ViewId) -> Self {
+    pub(super) fn new(editor: &'a Editor, view: ViewId) -> Self {
         let cursor_line = line_of(editor.document_of(view), editor.view_ref(view).cursor());
         Self {
             cursor_line,

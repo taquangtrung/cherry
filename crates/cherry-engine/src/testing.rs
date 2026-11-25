@@ -50,18 +50,18 @@ pub(crate) struct Harness {
 impl Harness {
     /// A harness editing `marked`, text with one `|` for the cursor, with
     /// default options.
-    pub fn new(marked: &str) -> Self {
+    pub(crate) fn new(marked: &str) -> Self {
         Self::with_options(marked, EditorOptions::default())
     }
 
     /// A harness editing `marked` as a single-line document, with
     /// `options`.
-    pub fn single_line(marked: &str, options: EditorOptions) -> Self {
+    pub(crate) fn single_line(marked: &str, options: EditorOptions) -> Self {
         Self::opened(marked, options, Editor::open_single_line_document)
     }
 
     /// A harness editing `marked` with `options`.
-    pub fn with_options(marked: &str, options: EditorOptions) -> Self {
+    pub(crate) fn with_options(marked: &str, options: EditorOptions) -> Self {
         Self::opened(marked, options, Editor::open_document)
     }
 
@@ -89,7 +89,7 @@ impl Harness {
     }
 
     /// Feeds the keys `notation` writes, one key interval apart.
-    pub fn keys(&mut self, notation: &str) -> &mut Self {
+    pub(crate) fn keys(&mut self, notation: &str) -> &mut Self {
         for key in parse_keys(notation) {
             self.last_handled = Some(self.editor.handle_key(self.view, key, self.now));
             self.now = self.now + KEY_INTERVAL;
@@ -98,7 +98,7 @@ impl Harness {
     }
 
     /// The text with `|` at the cursor.
-    pub fn marked(&self) -> String {
+    pub(crate) fn marked(&self) -> String {
         let view = self.editor.view(self.view).expect("the view is open");
         let document = self.editor.document(view.document()).expect("open");
         let mut text: Vec<char> = document.to_string().chars().collect();
@@ -107,7 +107,7 @@ impl Harness {
     }
 
     /// The mode of the view.
-    pub fn mode(&self) -> Mode {
+    pub(crate) fn mode(&self) -> Mode {
         self.editor
             .view(self.view)
             .expect("the view is open")
@@ -115,12 +115,12 @@ impl Harness {
     }
 
     /// Takes the requests the editor queued.
-    pub fn requests(&mut self) -> Vec<HostRequest> {
+    pub(crate) fn requests(&mut self) -> Vec<HostRequest> {
         self.editor.take_requests()
     }
 
     /// Lets the key timeout pass with no key, and ticks the editor.
-    pub fn wait(&mut self) -> bool {
+    pub(crate) fn wait(&mut self) -> bool {
         self.now = self.now + self.editor.options().key_timeout;
         self.editor.tick(self.now)
     }

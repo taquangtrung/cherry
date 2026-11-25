@@ -113,17 +113,17 @@ struct Needle {
 
 impl ExtraCursors {
     /// Drops every extra cursor and what they were added at.
-    pub fn clear(&mut self) {
+    pub(crate) fn clear(&mut self) {
         *self = Self::default();
     }
 
     /// Whether there is no extra cursor.
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.offsets.is_empty()
     }
 
     /// Carries every cursor across an edit with `map`.
-    pub fn map(&mut self, map: impl Fn(usize) -> usize) {
+    pub(crate) fn map(&mut self, map: impl Fn(usize) -> usize) {
         for offset in &mut self.offsets {
             *offset = map(*offset);
         }
@@ -134,18 +134,18 @@ impl ExtraCursors {
 
     /// The visual anchor of each cursor, by the order of
     /// [`ExtraCursors::offsets`], while the view is in a visual mode.
-    pub fn anchors(&self) -> &[Option<usize>] {
+    pub(crate) fn anchors(&self) -> &[Option<usize>] {
         &self.anchors
     }
 
     /// Where the cursors are, in the order they were added.
-    pub fn offsets(&self) -> &[usize] {
+    pub(crate) fn offsets(&self) -> &[usize] {
         &self.offsets
     }
 
     /// Makes `offsets` the cursors, in that order, dropping `main` and
     /// repeats and keeping at most [`MAX_CURSORS`].
-    pub fn set(&mut self, offsets: Vec<usize>, main: usize) {
+    pub(crate) fn set(&mut self, offsets: Vec<usize>, main: usize) {
         let mut kept: Vec<usize> = Vec::with_capacity(offsets.len());
         let mut registers = Vec::with_capacity(offsets.len());
         let mut anchors = Vec::with_capacity(offsets.len());

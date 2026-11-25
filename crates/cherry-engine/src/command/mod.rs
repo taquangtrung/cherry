@@ -245,7 +245,7 @@ impl CommandContext<'_> {
 impl KeyBindings {
     /// The default key tables of `style`, with no overrides and no host
     /// keys.
-    pub fn new(style: EditingStyle) -> Self {
+    pub(crate) fn new(style: EditingStyle) -> Self {
         let mut bindings = Self {
             host: Vec::new(),
             keymap: Keymap::new(),
@@ -257,7 +257,7 @@ impl KeyBindings {
     /// Binds each of `specs` to `id` in `mode`, keeping the keys `id`
     /// already has. Rejected, binding nothing, when a spec does not parse
     /// or none is given.
-    pub fn bind(&mut self, mode: Mode, specs: &[&str], id: CommandId) -> Result<(), CommandError> {
+    pub(crate) fn bind(&mut self, mode: Mode, specs: &[&str], id: CommandId) -> Result<(), CommandError> {
         let sequences = parse_specs(id.as_str(), specs)?;
         if sequences.is_empty() {
             return Err(empty_spec(id.as_str()));
@@ -276,7 +276,7 @@ impl KeyBindings {
     /// Binds each of `specs` to `id` in `mode` in `document` alone, where
     /// they win over every document's keys. Rejected, binding nothing,
     /// when a spec does not parse or none is given.
-    pub fn bind_in_document(
+    pub(crate) fn bind_in_document(
         &mut self,
         document: DocumentId,
         mode: Mode,
@@ -299,7 +299,7 @@ impl KeyBindings {
     }
 
     /// Drops every key bound in `document` alone.
-    pub fn drop_document(&mut self, document: DocumentId) {
+    pub(crate) fn drop_document(&mut self, document: DocumentId) {
         let before = self.host.len();
         self.host
             .retain(|binding| binding.document != Some(document));
@@ -310,27 +310,27 @@ impl KeyBindings {
 
     /// The bindings of the default key table of `mode`, in table order,
     /// with the table's keys in force.
-    pub fn help_rows(&self, mode: Mode) -> Vec<HelpRow> {
+    pub(crate) fn help_rows(&self, mode: Mode) -> Vec<HelpRow> {
         self.tables
             .get(&mode)
             .map_or_else(Vec::new, KeyTable::help_rows)
     }
 
     /// The keymap dispatch reads.
-    pub fn keymap(&self) -> &Keymap<KeyLayer, CommandId> {
+    pub(crate) fn keymap(&self) -> &Keymap<KeyLayer, CommandId> {
         &self.keymap
     }
 
     /// What the built-in command `id` does, as the key table of `mode`
     /// titles it.
-    pub fn title(&self, mode: Mode, id: &str) -> Option<&'static str> {
+    pub(crate) fn title(&self, mode: Mode, id: &str) -> Option<&'static str> {
         self.tables.get(&mode)?.title(id)
     }
 
     /// Gives `id` the keys `specs` in `mode` in place of all it had there,
     /// its defaults and the keys the host bound; no specs unbinds it.
     /// Rejected, changing nothing, when a spec does not parse.
-    pub fn override_keys(
+    pub(crate) fn override_keys(
         &mut self,
         mode: Mode,
         id: CommandId,
@@ -362,7 +362,7 @@ impl KeyBindings {
 
     /// Puts the default key tables of `style` in place of those in force,
     /// dropping the user's overrides of them; the host's keys stay.
-    pub fn set_editing_style(&mut self, style: EditingStyle) {
+    pub(crate) fn set_editing_style(&mut self, style: EditingStyle) {
         self.tables = default_tables(style);
         self.rebuild_keymap();
     }
@@ -399,7 +399,7 @@ impl KeyBindings {
 
 impl Registry {
     /// The registry of the editor's own commands.
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let builtins = COMMANDS
             .iter()
             .map(|(id, run)| (CommandId::from(*id), Arc::new(*run) as CommandFn));
@@ -413,17 +413,17 @@ impl Registry {
     }
 
     /// Every registered command id, in no order.
-    pub fn ids(&self) -> impl Iterator<Item = &str> {
+    pub(crate) fn ids(&self) -> impl Iterator<Item = &str> {
         self.commands.keys().map(CommandId::as_str)
     }
 
     /// The function `id` runs, or `None` when no command has the id.
-    pub fn get(&self, id: &str) -> Option<CommandFn> {
+    pub(crate) fn get(&self, id: &str) -> Option<CommandFn> {
         self.commands.get(id).cloned()
     }
 
     /// The id as registered, for binding keys to it.
-    pub fn id(&self, id: &str) -> Result<CommandId, CommandError> {
+    pub(crate) fn id(&self, id: &str) -> Result<CommandId, CommandError> {
         self.commands
             .get_key_value(id)
             .map(|(id, _)| id.clone())
@@ -431,7 +431,7 @@ impl Registry {
     }
 
     /// Registers `run` under `id`. Rejected when `id` is taken.
-    pub fn register(&mut self, id: CommandId, run: CommandFn) -> Result<(), CommandError> {
+    pub(crate) fn register(&mut self, id: CommandId, run: CommandFn) -> Result<(), CommandError> {
         if self.commands.contains_key(&id) {
             return Err(CommandError::DuplicateId(id.to_string()));
         }

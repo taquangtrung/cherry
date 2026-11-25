@@ -130,7 +130,7 @@ pub(crate) struct Marks {
 impl ChangeList {
     /// Records a change at `place`: in place of the newest entry when that
     /// is on the same line, `g;` starting over from the newest end.
-    pub fn record(&mut self, document: &Document, place: usize) {
+    pub(crate) fn record(&mut self, document: &Document, place: usize) {
         let line = line_of(document, place);
         if self
             .entries
@@ -148,7 +148,7 @@ impl ChangeList {
 
     /// Goes `count` changes older, as far as the oldest; `None` at the
     /// oldest already.
-    pub fn older(&mut self, count: usize) -> Option<usize> {
+    pub(crate) fn older(&mut self, count: usize) -> Option<usize> {
         if self.index == 0 {
             return None;
         }
@@ -158,7 +158,7 @@ impl ChangeList {
 
     /// Goes `count` changes newer, as far as the newest; `None` at the
     /// newest already.
-    pub fn newer(&mut self, count: usize) -> Option<usize> {
+    pub(crate) fn newer(&mut self, count: usize) -> Option<usize> {
         let newest = self.entries.len().checked_sub(1)?;
         if self.index >= newest {
             return None;
@@ -168,12 +168,12 @@ impl ChangeList {
     }
 
     /// Whether no change was recorded.
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
 
     /// Carries every place to where `map` takes it, after an edit.
-    pub fn map(&mut self, map: impl Fn(usize) -> usize) {
+    pub(crate) fn map(&mut self, map: impl Fn(usize) -> usize) {
         for entry in &mut self.entries {
             *entry = map(*entry);
         }
@@ -187,7 +187,7 @@ impl ChangeList {
 impl JumpList {
     /// Goes `count` places back from `current`, remembering `current`
     /// first when at the newest end; `None` when there are not that many.
-    pub fn back(&mut self, document: &Document, current: usize, count: usize) -> Option<usize> {
+    pub(crate) fn back(&mut self, document: &Document, current: usize, count: usize) -> Option<usize> {
         if self.index >= self.entries.len() {
             self.insert(document, current);
             self.index = self.entries.len() - 1;
@@ -197,7 +197,7 @@ impl JumpList {
     }
 
     /// Goes `count` places forward; `None` when there are not that many.
-    pub fn forward(&mut self, count: usize) -> Option<usize> {
+    pub(crate) fn forward(&mut self, count: usize) -> Option<usize> {
         let target = self.index.checked_add(count)?;
         let place = *self.entries.get(target)?;
         self.index = target;
@@ -205,7 +205,7 @@ impl JumpList {
     }
 
     /// Carries every place to where `map` takes it, after an edit.
-    pub fn map(&mut self, map: impl Fn(usize) -> usize) {
+    pub(crate) fn map(&mut self, map: impl Fn(usize) -> usize) {
         for entry in &mut self.entries {
             *entry = map(*entry);
         }
@@ -213,13 +213,13 @@ impl JumpList {
     }
 
     /// The place before the latest jump, if any.
-    pub fn previous(&self) -> Option<usize> {
+    pub(crate) fn previous(&self) -> Option<usize> {
         self.previous
     }
 
     /// Records a jump from `from`: the newest place, `C-o` starting over
     /// from the newest end.
-    pub fn push(&mut self, document: &Document, from: usize) {
+    pub(crate) fn push(&mut self, document: &Document, from: usize) {
         self.insert(document, from);
         self.index = self.entries.len();
         self.previous = Some(from);
@@ -244,19 +244,19 @@ impl JumpList {
 
 impl Marks {
     /// The place of mark `name`, if set.
-    pub fn get(&self, name: char) -> Option<usize> {
+    pub(crate) fn get(&self, name: char) -> Option<usize> {
         self.places.get(&name).copied()
     }
 
     /// Carries every mark to where `map` takes it, after an edit.
-    pub fn map(&mut self, map: impl Fn(usize) -> usize) {
+    pub(crate) fn map(&mut self, map: impl Fn(usize) -> usize) {
         for place in self.places.values_mut() {
             *place = map(*place);
         }
     }
 
     /// Sets mark `name` at `place`.
-    pub fn set(&mut self, name: char, place: usize) {
+    pub(crate) fn set(&mut self, name: char, place: usize) {
         self.places.insert(name, place);
     }
 }
