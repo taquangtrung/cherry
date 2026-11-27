@@ -1236,14 +1236,18 @@ mod tests {
                 metrics.height * 0.4,
             )
         };
-        assert!(
-            snapshot.contains_color(band(1.0), theme.danger),
-            "an undercurl under the decorated text"
-        );
-        assert!(
-            !snapshot.contains_color(band(4.0), theme.danger),
-            "none past it"
-        );
+        // The curl is antialiased, a pixel thick split between two rows, so
+        // it shows as the danger color blended over the background: a pixel
+        // off the background whose red leads.
+        let reddened = |area: Rect| {
+            let columns = area.x as u32..(area.x + area.width).ceil() as u32;
+            let rows = area.y as u32..(area.y + area.height).ceil() as u32;
+            rows.flat_map(|y| columns.clone().map(move |x| (x, y)))
+                .map(|(x, y)| snapshot.pixel(x as f32, y as f32))
+                .any(|pixel| pixel != theme.background && pixel.r > pixel.g && pixel.r > pixel.b)
+        };
+        assert!(reddened(band(1.0)), "an undercurl under the decorated text");
+        assert!(!reddened(band(4.0)), "none past it");
     }
 
     #[test]
