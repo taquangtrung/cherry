@@ -8,7 +8,8 @@
 use std::hash::Hash;
 
 use cherry_engine::keys::{BindError, Continuation, Keymap};
-use misty::{CommandRegistry, Key, KeyScope, WhichKeyEntry};
+use misty::Key;
+use misty::widgets::{CommandRegistry, KeyScope, WhichKeyEntry};
 
 use super::keys::{from_cherry, to_cherry};
 
@@ -80,7 +81,7 @@ pub fn to_keys(keys: &[cherry_engine::keys::Key]) -> Vec<Key> {
 
 #[cfg(test)]
 mod tests {
-    use misty::Command;
+    use misty::widgets::Command;
     use misty::parse_key_sequence;
 
     use super::*;

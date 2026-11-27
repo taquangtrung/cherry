@@ -49,9 +49,9 @@ misty = { workspace = true }
 [dev-dependencies]
 misty = { workspace = true, features = ["testing"] }
 
-# The chrome example's tests check its command table.
+# The bars example's tests check its command table.
 [[example]]
-name = "chrome"
+name = "bars"
 test = true
 
 [[example]]

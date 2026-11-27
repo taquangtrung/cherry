@@ -1,4 +1,4 @@
-//! A frameless window with misty's own chrome: a title bar (drag it to move
+//! A frameless window with misty's own bars: a title bar (drag it to move
 //! the window, double-click it to maximize, drag any edge to resize) with a
 //! menu button, over a tab strip. Every command lives in one command
 //! registry, which binds the keys and fills both menus: Ctrl+T opens a
@@ -23,7 +23,7 @@
 //! button, tab, or menu item.
 //!
 //! ```sh
-//! cargo run -p cherry-misty --example chrome -- --light
+//! cargo run -p cherry-misty --example bars -- --light
 //! ```
 
 use std::env;
@@ -33,20 +33,16 @@ use cherry_misty::engine::keys::{Keymap, Resolution, Resolver};
 use cherry_misty::keys::to_cherry;
 use cherry_misty::{clock, keymap};
 use misty::accesskit::{Node, Role};
-use misty::{
-    AccessAction, AppContext, Application, Cell, CellBuffer, CellStyle, Command, CommandRegistry,
-    Decorations, Error, FocusId, FocusTree, Frame, Input, Key, KeyCode, KeyScope, Menu,
-    MenuResponse, MenuSlot, Mods, Outcome, Point, PointerButton, PopupSide, Rect, Route, Size,
-    Span, Strings, StyledText, TabId, TabStrip, TabStripResponse, Theme, ThemeToken, TitleBar,
-    TitleBarResponse, WhichKey, Widget, WindowId, WindowOptions,
-};
+use misty::{AccessAction, AppContext, Application, Decorations, Error, FocusId, FocusTree, Frame, Input, Key, KeyCode, Mods, Outcome, Point, PointerButton, Rect, Route, Size, Span, Strings, StyledText, Theme, ThemeToken, Widget, WindowId, WindowOptions};
+use misty::grid::{Cell, CellBuffer, CellStyle};
+use misty::widgets::{Command, CommandRegistry, KeyScope, Menu, MenuResponse, MenuSlot, PopupSide, TabId, TabStrip, TabStripResponse, TitleBar, TitleBarResponse, WhichKey};
 
 // ========================================================================
 // Constants
 // ========================================================================
 
 /// The window title.
-const TITLE: &str = "misty chrome";
+const TITLE: &str = "misty bars";
 
 /// The accessibility id of the title bar, which never takes the focus.
 const TITLE_BAR: FocusId = FocusId::new("title-bar");
@@ -149,7 +145,7 @@ const MARGIN: usize = 1;
 
 /// The demo: a title bar, a tab strip, and two menus over a few lines of
 /// text, all driven by one command registry.
-struct Chrome {
+struct Bars {
     /// The menu under the title bar's menu button.
     app_menu: Menu<&'static str>,
     /// The text under the tab strip.
@@ -188,10 +184,10 @@ enum Layer {
 }
 
 // ========================================================================
-// Chrome Implementations
+// Bars Implementations
 // ========================================================================
 
-impl Chrome {
+impl Bars {
     /// Opens a numbered tab and makes it active.
     fn open_tab(&mut self) {
         self.opened += 1;
@@ -320,7 +316,7 @@ impl Chrome {
     }
 }
 
-impl Application for Chrome {
+impl Application for Bars {
     type Message = ();
 
     fn init(&mut self, _cx: &mut AppContext<'_, ()>, window: WindowId) {
@@ -559,7 +555,7 @@ fn main() -> Result<(), Error> {
     let mut keymap = Keymap::new();
     keymap::bind(&registry, &mut keymap, Layer::App, KeyScope::All)
         .expect("every command has keys");
-    let mut app = Chrome {
+    let mut app = Bars {
         app_menu: Menu::new(Vec::new()),
         content: CellBuffer::new(0, 0),
         context_menu: Menu::new(Vec::new()),

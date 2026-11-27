@@ -22,11 +22,8 @@ use cherry_misty::engine::keys::{Keymap, Resolution, Resolver};
 use cherry_misty::keymap;
 use cherry_misty::keys::to_cherry;
 use misty::view::{HostedView, SettingChange, SettingEdit, SettingScope, ViewHost, settings_page};
-use misty::{
-    AppContext, Application, Command, CommandRegistry, Element, Error, FocusId, Frame, ImeFocus,
-    Input, KeyCode, KeyScope, NumberRange, Point, Rect, Rgb, Setting, SettingValue,
-    SettingsSection, Span, Strings, StyledText, Theme, ThemeToken, WindowId, WindowOptions,
-};
+use misty::{AppContext, Application, Element, Error, FocusId, Frame, ImeFocus, Input, KeyCode, Point, Rect, Rgb, Setting, SettingValue, SettingsSection, Span, Strings, StyledText, Theme, ThemeToken, WindowId, WindowOptions};
+use misty::widgets::{Command, CommandRegistry, KeyScope, NumberRange};
 
 // ========================================================================
 // Constants

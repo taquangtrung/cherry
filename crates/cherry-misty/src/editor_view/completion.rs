@@ -4,10 +4,9 @@
 //! card beside it.
 
 use cherry_engine::{Completion, CompletionItem, CompletionKind};
-use misty::{
-    BoxStyle, CellColor, Frame, Paragraph, Point, Popup, PopupSide, Rect, Rgb, Rgba, Shape, Span,
-    StyledText, TextColor, Theme, ThemeToken, fuzzy_highlight, fuzzy_score, text_width,
-};
+use misty::{BoxStyle, Frame, Paragraph, Point, Rect, Rgb, Rgba, Shape, Span, StyledText, TextColor, Theme, ThemeToken, fuzzy_highlight, fuzzy_score};
+use misty::grid::{CellColor, text_width};
+use misty::widgets::{Popup, PopupSide};
 
 // ========================================================================
 // Constants

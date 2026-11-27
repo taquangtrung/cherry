@@ -71,10 +71,9 @@ use cherry_engine::{
     ClickCounter, Clipboard, ClipboardSelection, Editor, Handled, HostRequest, ScrollOffset,
     Surface, ViewId,
 };
-use misty::{
-    Attributes, CellBuffer, CellMetrics, ClipboardKind, EventCx, Font, Frame, Input, Mods, Outcome,
-    Point, Preedit, Rect, Rgb, SmoothScroll, SystemClipboard, Theme, Tooltip, Widget,
-};
+use misty::{CellMetrics, ClipboardKind, EventCx, Font, Frame, Input, Mods, Outcome, Point, Preedit, Rect, Rgb, SmoothScroll, SystemClipboard, Theme, Widget};
+use misty::grid::{Attributes, CellBuffer};
+use misty::widgets::Tooltip;
 
 use self::draw::{Glided, Mark};
 use self::input::takes_text;
@@ -576,10 +575,8 @@ mod tests {
     };
     use misty::accesskit::{Role, TextPosition, TextSelection};
     use misty::testing::{TestWindow, access_node, access_tree};
-    use misty::{
-        CellColor, CellSource, CellWidth, Composition, FocusId, ImeInput, UnderlineStyle,
-        WheelDelta,
-    };
+    use misty::{Composition, FocusId, ImeInput, WheelDelta};
+    use misty::grid::{CellColor, CellSource, CellWidth, UnderlineStyle};
 
     use crate::keys::to_cherry;
 
@@ -826,7 +823,7 @@ mod tests {
         let mut cells = CellBuffer::new(4, rows.len());
         for (row, text) in rows.iter().enumerate() {
             for (col, ch) in text.chars().enumerate() {
-                cells.set(row, col, misty::Cell::new(ch, misty::CellStyle::default()));
+                cells.set(row, col, misty::grid::Cell::new(ch, misty::grid::CellStyle::default()));
             }
         }
         cells
@@ -960,11 +957,11 @@ mod tests {
         let theme = Theme::dark();
         let normal = painted("abc", &["l"], &theme).cursor().expect("a cursor");
         assert_eq!((normal.row, normal.col), (0, 1));
-        assert_eq!(normal.shape, misty::CursorShape::Block);
+        assert_eq!(normal.shape, misty::grid::CursorShape::Block);
         let insert = painted("abc", &["l", "i"], &theme)
             .cursor()
             .expect("a cursor");
-        assert_eq!(insert.shape, misty::CursorShape::Bar);
+        assert_eq!(insert.shape, misty::grid::CursorShape::Bar);
     }
 
     #[test]
@@ -982,7 +979,7 @@ mod tests {
         assert_eq!(cell(3).ch, 'y');
         assert_eq!(cell(4).ch, 'e', "the cells past the preedit stay");
         let cursor = cells.cursor().expect("a cursor");
-        assert_eq!((cursor.col, cursor.shape), (1, misty::CursorShape::Bar));
+        assert_eq!((cursor.col, cursor.shape), (1, misty::grid::CursorShape::Bar));
     }
 
     #[test]
@@ -1188,7 +1185,7 @@ mod tests {
             vec![Sign::new(0, "W", DecorationKind::Warning)],
         );
         let cells = cells_of(&mut editor, view, &theme);
-        let row: Vec<&misty::Cell> = (0..cells.cols())
+        let row: Vec<&misty::grid::Cell> = (0..cells.cols())
             .filter_map(|col| cells.cell(0, col))
             .collect();
         let sign = row.iter().find(|cell| cell.ch == 'W').expect("the sign");
@@ -1437,7 +1434,7 @@ mod tests {
         );
         assert_eq!(
             past_the_end,
-            misty::CellStyle::default(),
+            misty::grid::CellStyle::default(),
             "an id the host gave no style"
         );
     }

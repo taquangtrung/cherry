@@ -22,7 +22,7 @@ An app that only resolves misty keys with Cherry's keymap uses the first three; 
 
 ## Examples
 
-The `chrome`, `palette`, and `settings` examples resolve their keys with Cherry's keymap; `editor` is a small text editor. From the repository root:
+The `bars`, `palette`, and `settings` examples resolve their keys with Cherry's keymap; `editor` is a small text editor. From the repository root:
 
 ```bash
 cargo run -p cherry-misty --example palette

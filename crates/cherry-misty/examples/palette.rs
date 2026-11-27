@@ -21,11 +21,8 @@ use cherry_misty::clock;
 use cherry_misty::engine::keys::{Keymap, Resolution, Resolver};
 use cherry_misty::keymap;
 use cherry_misty::keys::to_cherry;
-use misty::{
-    AppContext, Application, Command, CommandRegistry, Decorations, Error, EventCx, Frame,
-    ImeFocus, Input, KeyScope, Point, QuickPick, Rect, Size, TitleBar, TitleBarResponse, Widget,
-    WindowId, WindowOptions, command_palette, picker,
-};
+use misty::{AppContext, Application, Decorations, Error, EventCx, Frame, ImeFocus, Input, Point, Rect, Size, Widget, WindowId, WindowOptions, picker};
+use misty::widgets::{Command, CommandRegistry, KeyScope, QuickPick, TitleBar, TitleBarResponse, command_palette};
 use misty::{LabelFont, Shape, Span, StyledText, Theme, ThemeToken};
 
 // ========================================================================

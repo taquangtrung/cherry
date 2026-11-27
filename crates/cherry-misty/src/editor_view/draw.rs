@@ -11,10 +11,8 @@ use std::time::Instant;
 use cherry_engine::{
     DecorationKind, Editor, Layers, LineChange, ScrollOffset, Surface, render_prompt, render_view,
 };
-use misty::{
-    Attributes, CellBuffer, CellColor, CellMetrics, CellSource, CellWidth, Frame, Paint, Point,
-    Preedit, Rect, Rgb, Rgba, Stroke, Theme, UnderlineStyle, VectorPath, char_width, text_width,
-};
+use misty::{CellMetrics, Frame, Paint, Point, Preedit, Rect, Rgb, Rgba, Stroke, Theme, VectorPath};
+use misty::grid::{Attributes, CellBuffer, CellColor, CellSource, CellWidth, UnderlineStyle, char_width, text_width};
 
 use super::completion::draw_completion;
 use super::{EditorView, HighlightStyle, ViewLayout, scrollbar};
@@ -282,7 +280,7 @@ impl EditorView {
         if !self.focused
             && let Some(cursor) = self.next.cursor()
         {
-            let hollow = misty::Cursor::new(cursor.row, cursor.col, misty::CursorShape::Hollow);
+            let hollow = misty::grid::Cursor::new(cursor.row, cursor.col, misty::grid::CursorShape::Hollow);
             self.next.set_cursor(Some(hollow));
         }
         let scroll = editor.view(self.view).map(|view| view.scroll());
@@ -496,7 +494,7 @@ pub(super) fn rows_line_up(old: &CellBuffer, new: &CellBuffer, shift: isize) -> 
 
 /// Whether `cell` is an indentation guide, its glyph hidden for the line
 /// drawn in its place.
-pub(super) fn is_guide(cell: &misty::Cell) -> bool {
+pub(super) fn is_guide(cell: &misty::grid::Cell) -> bool {
     cell.style.attributes.contains(Attributes::CONCEAL) && cell.ch.to_string() == INDENT_GUIDE
 }
 
@@ -551,20 +549,20 @@ pub(super) fn fill_cells(
                 style.attributes = style.attributes | Attributes::CONCEAL;
             }
             let cell = match chars.next() {
-                None if after_wide => misty::Cell {
+                None if after_wide => misty::grid::Cell {
                     width: CellWidth::Continuation,
-                    ..misty::Cell::new(' ', style)
+                    ..misty::grid::Cell::new(' ', style)
                 },
-                None => misty::Cell::new(' ', style),
+                None => misty::grid::Cell::new(' ', style),
                 Some(first) => {
                     let rest = chars.as_str();
-                    misty::Cell {
+                    misty::grid::Cell {
                         tail: (!rest.is_empty()).then(|| rest.into()),
                         width: match text_width(&painted.symbol) > 1 {
                             true => CellWidth::Wide,
                             false => CellWidth::Single,
                         },
-                        ..misty::Cell::new(first, style)
+                        ..misty::grid::Cell::new(first, style)
                     }
                 }
             };
@@ -574,14 +572,14 @@ pub(super) fn fill_cells(
     }
     cells.set_cursor(cursor.map(|cursor| {
         let shape = match cursor.shape {
-            cherry_engine::CursorShape::Bar => misty::CursorShape::Bar,
-            cherry_engine::CursorShape::Block => misty::CursorShape::Block,
-            cherry_engine::CursorShape::Underline => misty::CursorShape::Underline,
+            cherry_engine::CursorShape::Bar => misty::grid::CursorShape::Bar,
+            cherry_engine::CursorShape::Block => misty::grid::CursorShape::Block,
+            cherry_engine::CursorShape::Underline => misty::grid::CursorShape::Underline,
             // A shape added after this was written: the block shows the
             // cursor's place whatever it means.
-            _ => misty::CursorShape::Block,
+            _ => misty::grid::CursorShape::Block,
         };
-        misty::Cursor::new(usize::from(cursor.row), usize::from(cursor.column), shape)
+        misty::grid::Cursor::new(usize::from(cursor.row), usize::from(cursor.column), shape)
     }));
 }
 
@@ -592,9 +590,9 @@ pub(super) fn overlay_preedit(cells: &mut CellBuffer, preedit: &Preedit) {
     let Some(cursor) = cells.cursor() else {
         return;
     };
-    let style = misty::CellStyle {
+    let style = misty::grid::CellStyle {
         underline: UnderlineStyle::Single,
-        ..misty::CellStyle::default()
+        ..misty::grid::CellStyle::default()
     };
     let mut col = cursor.col;
     for c in preedit.text().chars() {
@@ -614,15 +612,15 @@ pub(super) fn overlay_preedit(cells: &mut CellBuffer, preedit: &Preedit) {
         cells.set(
             cursor.row,
             col,
-            misty::Cell {
+            misty::grid::Cell {
                 width,
-                ..misty::Cell::new(c, style)
+                ..misty::grid::Cell::new(c, style)
             },
         );
         if wide {
-            let continuation = misty::Cell {
+            let continuation = misty::grid::Cell {
                 width: CellWidth::Continuation,
-                ..misty::Cell::new(' ', style)
+                ..misty::grid::Cell::new(' ', style)
             };
             cells.set(cursor.row, col + 1, continuation);
             col += 1;
@@ -632,7 +630,7 @@ pub(super) fn overlay_preedit(cells: &mut CellBuffer, preedit: &Preedit) {
     let caret = preedit
         .caret_cells()
         .map(|cells_before| (cursor.col + cells_before).min(cells.cols().saturating_sub(1)));
-    cells.set_cursor(caret.map(|col| misty::Cursor::new(cursor.row, col, misty::CursorShape::Bar)));
+    cells.set_cursor(caret.map(|col| misty::grid::Cursor::new(cursor.row, col, misty::grid::CursorShape::Bar)));
 }
 
 /// The cell style `painted` is drawn in under `theme`: its Cherry style,
@@ -645,7 +643,7 @@ pub(super) fn cell_style(
     painted: &cherry_engine::Cell,
     theme: &Theme,
     highlights: &[HighlightStyle],
-) -> misty::CellStyle {
+) -> misty::grid::CellStyle {
     let host = |id: cherry_engine::HighlightId| highlights.get(usize::from(id.index())).copied();
     let mut style = style_of(painted.style, theme);
     match painted.style {
@@ -787,74 +785,74 @@ fn underline_of(kind: DecorationKind, theme: &Theme) -> (UnderlineStyle, CellCol
 }
 
 /// The cell style Cherry's `style` is drawn in under `theme`.
-fn style_of(style: cherry_engine::Style, theme: &Theme) -> misty::CellStyle {
+fn style_of(style: cherry_engine::Style, theme: &Theme) -> misty::grid::CellStyle {
     match style {
         // A wash of the host's own takes its color from the host's styles;
         // without one, the raised color.
-        cherry_engine::Style::Background(_) => misty::CellStyle {
+        cherry_engine::Style::Background(_) => misty::grid::CellStyle {
             background: CellColor::Rgb(theme.raised),
-            ..misty::CellStyle::default()
+            ..misty::grid::CellStyle::default()
         },
-        cherry_engine::Style::CursorLine => misty::CellStyle {
+        cherry_engine::Style::CursorLine => misty::grid::CellStyle {
             background: CellColor::Rgb(theme.cursor_line),
-            ..misty::CellStyle::default()
+            ..misty::grid::CellStyle::default()
         },
         // Text a decoration highlights (the other uses of a name) is
         // outlined rather than filled (see `mark_kind`).
-        cherry_engine::Style::Highlight => misty::CellStyle::default(),
-        cherry_engine::Style::CursorLineNumber => misty::CellStyle::default(),
+        cherry_engine::Style::Highlight => misty::grid::CellStyle::default(),
+        cherry_engine::Style::CursorLineNumber => misty::grid::CellStyle::default(),
         // An extra cursor as the main one is drawn: a block in the cursor
         // color over the text.
-        cherry_engine::Style::ExtraCursor => misty::CellStyle {
+        cherry_engine::Style::ExtraCursor => misty::grid::CellStyle {
             background: CellColor::Rgb(theme.cursor),
             foreground: CellColor::Rgb(theme.background),
-            ..misty::CellStyle::default()
+            ..misty::grid::CellStyle::default()
         },
         // Text that is not the document's own reads apart from it: muted
         // and slanted, unless its highlight colors it.
-        cherry_engine::Style::Inlay => misty::CellStyle {
+        cherry_engine::Style::Inlay => misty::grid::CellStyle {
             attributes: Attributes::ITALIC,
             foreground: CellColor::Rgb(theme.muted),
-            ..misty::CellStyle::default()
+            ..misty::grid::CellStyle::default()
         },
-        cherry_engine::Style::LineNumber => misty::CellStyle {
+        cherry_engine::Style::LineNumber => misty::grid::CellStyle {
             foreground: CellColor::Rgb(theme.muted),
-            ..misty::CellStyle::default()
+            ..misty::grid::CellStyle::default()
         },
-        cherry_engine::Style::MatchingBracket => misty::CellStyle {
+        cherry_engine::Style::MatchingBracket => misty::grid::CellStyle {
             attributes: Attributes::BOLD,
             background: CellColor::Rgb(theme.border),
-            ..misty::CellStyle::default()
+            ..misty::grid::CellStyle::default()
         },
-        cherry_engine::Style::Preedit => misty::CellStyle {
+        cherry_engine::Style::Preedit => misty::grid::CellStyle {
             underline: UnderlineStyle::Single,
-            ..misty::CellStyle::default()
+            ..misty::grid::CellStyle::default()
         },
         // Each phrase on a palette color of its own, cycling, its text dark.
-        cherry_engine::Style::Phrase(number) => misty::CellStyle {
+        cherry_engine::Style::Phrase(number) => misty::grid::CellStyle {
             background: CellColor::Rgb(
                 theme.palette.colors[PHRASE_COLORS[usize::from(number) % PHRASE_COLORS.len()]],
             ),
             foreground: CellColor::Rgb(theme.background),
-            ..misty::CellStyle::default()
+            ..misty::grid::CellStyle::default()
         },
         // Unlike a selection, a match stands out wherever it is: dark text
         // on the warning color.
-        cherry_engine::Style::SearchMatch => misty::CellStyle {
+        cherry_engine::Style::SearchMatch => misty::grid::CellStyle {
             background: CellColor::Rgb(theme.warning),
             foreground: CellColor::Rgb(theme.background),
-            ..misty::CellStyle::default()
+            ..misty::grid::CellStyle::default()
         },
-        cherry_engine::Style::Selection => misty::CellStyle {
+        cherry_engine::Style::Selection => misty::grid::CellStyle {
             background: CellColor::Rgb(theme.selection),
-            ..misty::CellStyle::default()
+            ..misty::grid::CellStyle::default()
         },
-        cherry_engine::Style::Sign(kind) => misty::CellStyle {
+        cherry_engine::Style::Sign(kind) => misty::grid::CellStyle {
             foreground: CellColor::Rgb(decoration_color(kind, theme)),
-            ..misty::CellStyle::default()
+            ..misty::grid::CellStyle::default()
         },
-        cherry_engine::Style::Text => misty::CellStyle::default(),
+        cherry_engine::Style::Text => misty::grid::CellStyle::default(),
         // A style added after this was written: drawn as plain text.
-        _ => misty::CellStyle::default(),
+        _ => misty::grid::CellStyle::default(),
     }
 }

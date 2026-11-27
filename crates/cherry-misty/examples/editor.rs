@@ -36,12 +36,8 @@ use cherry_misty::engine::{
 };
 use cherry_misty::keys::from_cherry;
 use cherry_misty::{EditorClipboard, EditorResponse, EditorView};
-use misty::{
-    AppContext, Application, Decorations, Error, Frame, ImeFocus, Input, Key, ModeBadge, Notice,
-    Notifier, Routing, Size, Span, StatusBar, StatusLine, Strings, StyledText, SystemClipboard,
-    Theme, ThemeToken, TitleBar, TitleBarResponse, WhichKey, WhichKeyEntry, Widget, WindowId,
-    WindowOptions, key_label,
-};
+use misty::{AppContext, Application, Decorations, Error, Frame, ImeFocus, Input, Key, Notice, Notifier, Routing, Size, Span, Strings, StyledText, SystemClipboard, Theme, ThemeToken, Widget, WindowId, WindowOptions, key_label};
+use misty::widgets::{ModeBadge, StatusBar, StatusLine, TitleBar, TitleBarResponse, WhichKey, WhichKeyEntry};
 
 // ========================================================================
 // Constants
