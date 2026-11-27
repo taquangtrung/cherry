@@ -26,7 +26,7 @@ use misty::{
     ImeFocus, Input, KeyScope, Point, QuickPick, Rect, Size, TitleBar, TitleBarResponse, Widget,
     WindowId, WindowOptions, command_palette, picker,
 };
-use misty::{ChromeText, Shape, Span, StyledText, Theme, ThemeToken};
+use misty::{LabelFont, Shape, Span, StyledText, Theme, ThemeToken};
 
 // ========================================================================
 // Constants
@@ -199,7 +199,7 @@ impl Palette {
             TOGGLE_THEME => {
                 let is_dark = self.theme.palette == Theme::dark().palette;
                 self.theme = Theme {
-                    chrome_text: self.theme.chrome_text,
+                    label_font: self.theme.label_font,
                     shape: self.theme.shape,
                     ..match is_dark {
                         true => Theme::light(),
@@ -208,9 +208,9 @@ impl Palette {
                 };
             }
             TOGGLE_SHAPE => {
-                (self.theme.shape, self.theme.chrome_text) = match self.theme.shape == Shape::GRID {
-                    true => (Shape::MODERN, ChromeText::Proportional),
-                    false => (Shape::GRID, ChromeText::Cells),
+                (self.theme.shape, self.theme.label_font) = match self.theme.shape == Shape::GRID {
+                    true => (Shape::MODERN, LabelFont::Proportional),
+                    false => (Shape::GRID, LabelFont::Cells),
                 };
             }
             // No other id is registered.
